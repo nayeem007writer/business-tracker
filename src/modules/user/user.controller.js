@@ -2,15 +2,18 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('./user.model');
 
-function login( req, res ) {
+async function login( req, res ) {
+   try{
     const { email, password} = req.body;
     console.log(email,password);
 
-    const user = users.find( (user) => user.email === email);
+    const user = await User.findOne({
+        where: {email}
+    });
 
     if(!user) return res.status(400).send('Invalid credential');
 
-    const matchedPassword = bcrypt.compareSync(password, user.password);
+    const matchedPassword = bcrypt.compareSync(password, User.password);
 
     if(!matchedPassword) return res.status(400).send('Invalid credential');
 
@@ -26,6 +29,13 @@ function login( req, res ) {
         httpOnly: true
     });
     res.status(200).send(modifiedUser);
+   }
+
+   catch(err) {
+
+    console.log(err);
+    res.status(500).send('Internal server error');
+}
 }
 
  async function createUsers( req, res ) {
@@ -55,19 +65,25 @@ function login( req, res ) {
 }
 
 function getUsers( req, res ) {
-    res.send(users);
+    const allUsers = User.findAll();
+
+    res.status(200).send(allUsers);
 }
 
-function updateUser( req, res ) {
+async function updateUser( req, res ) {
     const { firstName, lastName } = req.body;
+    const email = req.params.email;
 
-    const user = users.find(user => user.email === req.params.email);
+    const user = await User.findOne({
+        where: {email}
+    });
 
-    if(!user) return res.status(404).send('User not found');
-
-    user.firstName = firstName;
-    user.lastName = lastName;
-
+    await User.update(user, {
+        where: {
+          lastName: lastName,
+          firstName : firstName
+        }
+      });
     res.status(200).send(user);
     
 }
